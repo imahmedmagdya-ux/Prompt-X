@@ -65,7 +65,7 @@ if st.button("🚀 اخلق هذا العالم!"):
                 
                 # ضفنا رقم عشوائي (Seed) عشان السيرفر يرسم صورة جديدة طازة كل مرة
                 random_seed = random.randint(1, 1000000)
-                image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={random_seed}"
+                image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&seed={random_seed}"      
                 
                 # الباسبور المزور (User-Agent) عشان السيرفر يفتكرنا متصفح كروم حقيقي
                 headers = {
