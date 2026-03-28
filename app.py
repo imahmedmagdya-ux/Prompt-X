@@ -83,21 +83,18 @@ if st.button("🚀 اخلق هذا العالم الآن!"):
                     api_name="/generate_image"
                 )
 
-                # --- الخطوة د: عرض النتيجة وتنظيف الموقع ---
+                # --- الخطوة د: تظهير الصورة (حل مشكلة الصورة السوداء) ---
                 st.success("تم تخليق العالم والمطابقة بنجاح! 🎉")
                 st.balloons()
                 
                 st.subheader("إنت دلوقتي في العالم الجديد:")
                 
-                # عرض الصورة النهائية (Gradio بيرجعها كمسار ملف أو Tuple)
-                if isinstance(result, tuple) or isinstance(result, list):
-                    st.image(result[0], caption="المطابقة الاحترافية 100%", use_container_width=True)
-                else:
-                    st.image(result, caption="المطابقة الاحترافية 100%", use_container_width=True)
+                # قراءة بيانات الصورة الفعلية لتحويلها لتنسيق صالح للعرض
+                image_bytes = Image.open(result[0] if isinstance(result, (tuple, list)) else result)
                 
-                # مسح الملفات المؤقتة للحفاظ على سرعة الموقع
+                # عرض الصورة النهائية بعد تحويلها
+                st.image(image_bytes, caption="المطابقة الاحترافية 100% - استنساخ الوجه"، use_container_width=True)
+                
+                # مسح الملفات المؤقتة للحفاظ على مساحة الموقع
                 os.remove(face_path)
                 os.remove(scene_path)
-                
-            except Exception as e:
-                st.error(f"حصل ضغط على سيرفر المطابقة المجاني. التفاصيل التقنية: {e}")
