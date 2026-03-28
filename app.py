@@ -55,16 +55,18 @@ if st.button("🚀 انقلني لهذا العالم!"):
                 
                 client = Client("TencentARC/PhotoMaker")
                 
+                client = Client("TencentARC/PhotoMaker")
+                
                 result = client.predict(
-                    image_path=handle_file(tmp_path),
-                    prompt=final_prompt,
-                    negative_prompt="nsfw, generic face, badly drawn, distorted, low quality",
-                    style_name="(No style)",
-                    num_steps=20,
-                    style_strength_ratio=20,
-                    num_outputs=1,
-                    guidance_scale=5,
-                    seed=0,
+                    handle_file(tmp_path), 
+                    final_prompt,
+                    "nsfw, generic face, badly drawn, distorted, low quality",
+                    "(No style)",
+                    20,
+                    20,
+                    1,
+                    5,
+                    0,
                     api_name="/generate_image"
                 )
                 
