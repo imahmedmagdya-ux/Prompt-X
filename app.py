@@ -56,7 +56,7 @@ if st.button("🚀 اخلق هذا العالم!"):
                 final_prompt = f"A breathtaking photorealistic cinematic masterpiece of {face_desc}, wearing dark epic clothing, standing confidently in {scene_desc}. 8k resolution, dramatic lighting, highly detailed, Unreal Engine 5 render"
                 
                 # --- الخطوة ج: الرسم عبر السيرفر الرسمي لـ Hugging Face ---
-                API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+                API_URL = "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0"
                 headers = {"Authorization": f"Bearer {hf_token}"}
                 payload = {"inputs": final_prompt}
                 
