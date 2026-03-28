@@ -65,17 +65,21 @@ if st.button("🚀 اخلق هذا العالم الآن!"):
                 # السيرفر ده بياخد الوش (للهوية) والمشهد (للوضعية والبيئة)
                 client = Client("instantX/InstantID")
                 
+                # --- الخطوة ج: الاتصال السري بسيرفر InstantID للمطابقة ---
+                client = Client("instantX/InstantID")
+                
+                # إرسال البيانات بالترتيب المباشر لتفادي أي تغيير في أسماء المتغيرات على السيرفر
                 result = client.predict(
-                    face_image=handle_file(face_path),
-                    pose_image=handle_file(scene_path),
-                    prompt=final_prompt,
-                    negative_prompt="nsfw, generic face, badly drawn, distorted, low quality, cartoon",
-                    style_name="(No style)",
-                    num_steps=20,
-                    identitynet_strength_ratio=0.8, # قوة مطابقة الوجه
-                    adapter_strength_ratio=0.8,     # قوة مطابقة البيئة
-                    guidance_scale=5,
-                    seed=random.randint(1, 100000),
+                    handle_file(face_path),                                              # 1. صورة الوجه
+                    handle_file(scene_path),                                             # 2. صورة الوضعية (المشهد)
+                    final_prompt,                                                        # 3. البرومبت
+                    "nsfw, generic face, badly drawn, distorted, low quality, cartoon",  # 4. البرومبت السلبي
+                    "(No style)",                                                        # 5. الستايل
+                    20,                                                                  # 6. عدد الخطوات
+                    0.8,                                                                 # 7. قوة مطابقة الوجه
+                    0.8,                                                                 # 8. قوة مطابقة البيئة
+                    5,                                                                   # 9. قوة التوجيه
+                    random.randint(1, 100000),                                           # 10. Seed
                     api_name="/generate_image"
                 )
 
