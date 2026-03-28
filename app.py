@@ -90,11 +90,12 @@ if st.button("🚀 اخلق هذا العالم الآن!"):
                 st.subheader("إنت دلوقتي في العالم الجديد:")
                 
                 # قراءة بيانات الصورة الفعلية لتحويلها لتنسيق صالح للعرض
-                image_bytes = Image.open(result[0] if isinstance(result, (tuple, list)) else result)
+                final_img_path = result[0] if isinstance(result, (tuple, list)) else result
+                image_bytes = Image.open(final_img_path)
                 
-                # عرض الصورة النهائية بعد تحويلها
-                st.image(image_bytes, caption="المطابقة الاحترافية 100% - استنساخ الوجه"، use_container_width=True)
+                # عرض الصورة النهائية بعد تحويلها (تأكد من الفصلة الإنجليزية هنا)
+                st.image(image_bytes, caption="المطابقة الاحترافية 100% - استنساخ الوجه", use_container_width=True)
                 
                 # مسح الملفات المؤقتة للحفاظ على مساحة الموقع
-                os.remove(face_path)
-                os.remove(scene_path)
+                if os.path.exists(face_path): os.remove(face_path)
+                if os.path.exists(scene_path): os.remove(scene_path)
