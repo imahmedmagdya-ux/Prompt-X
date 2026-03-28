@@ -2,3 +2,4 @@ streamlit
 google-generativeai
 Pillow
 replicate
+pydantic==1.10.13
