@@ -89,13 +89,19 @@ if st.button("🚀 اخلق هذا العالم الآن!"):
                 
                 st.subheader("إنت دلوقتي في العالم الجديد:")
                 
-                # قراءة بيانات الصورة الفعلية لتحويلها لتنسيق صالح للعرض
+                # تحويل النتيجة لصورة صالحة للعرض
                 final_img_path = result[0] if isinstance(result, (tuple, list)) else result
                 image_bytes = Image.open(final_img_path)
                 
-                # عرض الصورة النهائية بعد تحويلها (تأكد من الفصلة الإنجليزية هنا)
                 st.image(image_bytes, caption="المطابقة الاحترافية 100% - استنساخ الوجه", use_container_width=True)
                 
                 # مسح الملفات المؤقتة للحفاظ على مساحة الموقع
                 if os.path.exists(face_path): os.remove(face_path)
                 if os.path.exists(scene_path): os.remove(scene_path)
+
+            except Exception as e:
+                # هذا هو الجزء الذي كان يفتقده الكود (قفل بلوك الـ try)
+                st.error(f"حصلت مشكلة تقنية: {e}")
+                # تنظيف الملفات حتى في حالة الخطأ
+                if 'face_path' in locals() and os.path.exists(face_path): os.remove(face_path)
+                if 'scene_path' in locals() and os.path.exists(scene_path): os.remove(scene_path)
