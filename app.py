@@ -1,14 +1,18 @@
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
+from gradio_client import Client, handle_file
+import tempfile
+import os
+import random
 
 # 1. تظبيط شكل الصفحة
 st.set_page_config(page_title="Prompt-X: استنساخ العوالم", page_icon="🪄", layout="centered")
 
 st.title("🪄 Prompt-X: استنساخ العوالم!")
-st.write("النسخة الأبدية المستقرة والمجانية 100% 🚀")
+st.write("النسخة المتكاملة: دمج دقيق لملامحك ووضعيتك داخل الموقع بدون الخروج منه 🚀")
 
-# 2. ربط مفتاح جوجل (العقل المدبر)
+# 2. ربط مفتاح جوجل
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 except Exception as e:
@@ -28,32 +32,68 @@ with col2:
         st.image(face_file, caption="الوجه", use_container_width=True)
 
 # 4. زرار التشغيل
-if st.button("🚀 تحليل الصور والحصول على البرومبت السري"):
+if st.button("🚀 اخلق هذا العالم الآن!"):
     if not scene_file or not face_file:
         st.error("ارجوك، ارفع الصورتين الأول!")
     else:
-        with st.spinner("جاري تحليل ملامحك ورسم العالم الجديد (الموضوع سريع جداً)... ⏳"):
+        with st.spinner("جاري دمج ملامحك مع البيئة (برجاء الانتظار، قد تستغرق دقيقة أو دقيقتين لضمان دقة 100%)... ⏳"):
             try:
-                # --- تحليل الوجه والمشهد باستخدام Gemini لتوليد البرومبت ---
-                gemini_model = genai.GenerativeModel('gemini-2.5-flash')
-                
-                # تحليل الوجه
+                # --- الخطوة أ: حفظ الصور مؤقتاً لإرسالها للسيرفر ---
                 face_image = Image.open(face_file)
-                face_prompt = "Analyze image_1.png and image_4.png: Identify the exact dark-rimmed rectangular frame of the glasses, the exact facial structure, and the genuinely wide cheerful smile. Focus on the geometry."
-                face_desc = gemini_model.generate_content([face_prompt, face_image]).text.strip()
-                
-                # تحليل المشهد
                 scene_image = Image.open(scene_file)
-                scene_prompt = "Analyze image_2.png and image_5.png: Describe the deep canyon avenue lined with crumbling stone pillars, the central archway, and the distant mountains. Focus on the geometry."
-                scene_desc = gemini_model.generate_content([scene_prompt, scene_image]).text.strip()
                 
-                # بناء البرومبت النهائي
-                final_prompt = f"A breathtaking photorealistic cinematic masterpiece of a man, exact facial likeness, rectangular glasses, genuine wide cheerful smile, wearing grey polo shirt and dark pants, *sitting in a frontal pose* on the sand floor of [ {scene_desc} ]. 8k resolution, Unreal Engine 5 render, award winning photography, high quality"
+                # تصغير بسيط لتسريع الرفع
+                face_image.thumbnail((800, 800))
+                scene_image.thumbnail((800, 800))
                 
-                st.success("تم التحليل بنجاح! 🎉")
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_face:
+                    face_image.save(tmp_face.name)
+                    face_path = tmp_face.name
+                    
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_scene:
+                    scene_image.save(tmp_scene.name)
+                    scene_path = tmp_scene.name
+
+                # --- الخطوة ب: تحليل المشهد لاستخراج برومبت البيئة (جوجل) ---
+                gemini_model = genai.GenerativeModel('gemini-2.5-flash')
+                scene_prompt_text = "Analyze this environment accurately in one short English sentence. Focus on the lighting, background, and atmosphere. Do not describe the person."
+                scene_desc = gemini_model.generate_content([scene_prompt_text, scene_image]).text.strip()
                 
-                st.subheader("البرومبت السري المستخدم:")
-                st.code(final_prompt, language="text")
+                final_prompt = f"A photorealistic masterpiece of a man, {scene_desc}, 8k resolution, highly detailed, award winning photography"
+
+                # --- الخطوة ج: الاتصال السري بسيرفر InstantID للمطابقة (بدون خروج العميل) ---
+                # السيرفر ده بياخد الوش (للهوية) والمشهد (للوضعية والبيئة)
+                client = Client("instantX/InstantID")
+                
+                result = client.predict(
+                    face_image=handle_file(face_path),
+                    pose_image=handle_file(scene_path),
+                    prompt=final_prompt,
+                    negative_prompt="nsfw, generic face, badly drawn, distorted, low quality, cartoon",
+                    style_name="(No style)",
+                    num_steps=20,
+                    identitynet_strength_ratio=0.8, # قوة مطابقة الوجه
+                    adapter_strength_ratio=0.8,     # قوة مطابقة البيئة
+                    guidance_scale=5,
+                    seed=random.randint(1, 100000),
+                    api_name="/generate_image"
+                )
+
+                # --- الخطوة د: عرض النتيجة وتنظيف الموقع ---
+                st.success("تم تخليق العالم والمطابقة بنجاح! 🎉")
+                st.balloons()
+                
+                st.subheader("إنت دلوقتي في العالم الجديد:")
+                
+                # عرض الصورة النهائية (Gradio بيرجعها كمسار ملف أو Tuple)
+                if isinstance(result, tuple) or isinstance(result, list):
+                    st.image(result[0], caption="المطابقة الاحترافية 100%", use_container_width=True)
+                else:
+                    st.image(result, caption="المطابقة الاحترافية 100%", use_container_width=True)
+                
+                # مسح الملفات المؤقتة للحفاظ على سرعة الموقع
+                os.remove(face_path)
+                os.remove(scene_path)
                 
             except Exception as e:
-                st.error(f"حصلت مشكلة: {e}")
+                st.error(f"حصل ضغط على سيرفر المطابقة المجاني. التفاصيل التقنية: {e}")
