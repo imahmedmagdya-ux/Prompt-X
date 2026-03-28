@@ -1,35 +1,70 @@
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
+import replicate
+import os
 
-st.set_page_config(page_title="Prompt-X | هندسة الخيال", page_icon="🪄", layout="centered")
+st.set_page_config(page_title="Prompt-X: انقل وجهك!", page_icon="🧑‍🎤", layout="centered")
 
-st.title("🔎 Prompt-X: استخرج الكود السري لأي صورة")
-st.write("ارفع أي صورة، والذكاء الاصطناعي هيحللها ويكتبلك البرومبت السحري بتاعها!")
+st.title("🧑‍🎤 Prompt-X: انقل وجهك لأي عالم!")
+st.write("ارفع صورتين: المشهد اللي بتحلم بيه، وصورتك الشخصية، وسيب الذكاء الاصطناعي يعمل السحر!")
 
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-except:
-    st.warning("جاري تجهيز الموقع... ⏳")
+    replicate_client = replicate.Client(api_token=st.secrets["REPLICATE_API_TOKEN"])
+except Exception as e:
+    st.warning(f"جاري تجهيز الموقع... تأكد من إعدادات الـ APIs. التفاصيل: {e}")
 
-uploaded_file = st.file_uploader("اسحب وارمي الصورة هنا، أو اضغط للاختيار...", type=["jpg", "jpeg", "png"])
+col1, col2 = st.columns(2)
 
-if uploaded_file is not None:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="الصورة اللي رفعناها", use_container_width=True)
-    
-    if st.button("🚀 توليد الكود السري"):
-        with st.spinner("جاري المسح بالليزر وتحليل تفاصيل الصورة... ⏳"):
+with col1:
+    scene_file = st.file_uploader("🖼️ ارفع المشهد المستهدف (Scene)", type=["jpg", "jpeg", "png"])
+    if scene_file:
+        st.image(scene_file, caption="المشهد المستهدف", use_container_width=True)
+
+with col2:
+    face_file = st.file_uploader("🧑 ارفع صورتك الشخصية (Face)", type=["jpg", "jpeg", "png"])
+    if face_file:
+        st.image(face_file, caption="صورتك الشخصية", use_container_width=True)
+
+if st.button("🚀 انقلني لهذا العالم!"):
+    if not scene_file or not face_file:
+        st.error("ارجوك، ارفع الصورتين الأول!")
+    else:
+        with st.spinner("جاري مسح الوجه، تحليل المشهد، ودمج العوالم... ⏳ (ممكن ياخد دقيقة)"):
             try:
-                model = genai.GenerativeModel('gemini-3-flash-preview')
+                scene_image = Image.open(scene_file)
+                gemini_model = genai.GenerativeModel('gemini-3-flash-preview')
                 
-                prompt_instructions = "أنت خبير في تصميم الصور بالذكاء الاصطناعي. حلل هذه الصورة بدقة شديدة، واكتب Prompt باللغة الإنجليزية يمكن استخدامه في أدوات مثل Midjourney لإعادة إنتاج صورة مشابهة تماماً. ركز على الإضاءة، الألوان، زاوية الكاميرا، والأسلوب الفني. اكتب الكود مباشرة بدون مقدمات."
+                scene_analysis_prompt = """
+                أنت خبير تصوير ومصمم ذكاء اصطناعي. حلل هذه الصورة بدقة شديدة لإضاءتها، ألوانها، زاوية الكاميرا، والتكوين.
+                اكتب Prompt باللغة الإنجليزية يصف هذه البيئة كأنها استوديو تصوير، مع التركيز على جودة الإضاءة الذهبية والظل.
+                لا تصف الأشخاص، صف فقط المشهد والملابس التي يرتديها الشخص (مثل العباءة المقنعة).
+                اكتب البرومبت مباشرة كسطر واحد من الكلمات المفتاحية.
+                """
                 
-                response = model.generate_content([prompt_instructions, image])
+                gemini_response = gemini_model.generate_content([scene_analysis_prompt, scene_image])
                 
-                st.success("تم التحليل بنجاح! 🎉")
-                st.subheader("الكود السري (Prompt):")
-                st.code(response.text, language="text")
+                base_prompt = gemini_response.text.strip()
+                
+                model_inputs = {
+                    "image": face_file,
+                    "prompt": f"A photorealistic, highly detailed portrait of a man, {base_prompt}, matching visible features and glasses frames, intense cinematic lighting, perfect likeness --ar 1:1 --stylize 300", # ندمج الوصف من Gemini مع أوامر المطابقة
+                    "negative_prompt": "generic face, blurred, duplicate faces, pose distortion, cartoon, low quality",
+                    "num_inference_steps": 50,
+                    "guidance_scale": 7,
+                }
+                
+                model_version = "lucataco/photomaker:011a6873528b7e7d69d2d5084931a2935824982669e46950275a5e7b57a55598"
+                
+                output_url_list = replicate_client.run(model_version, input=model_inputs)
+                
+                final_image_url = output_url_list[0]
+                
+                st.success("تم التوليد والمطابقة بنجاح! 🎉")
+                st.balloons()
+                st.subheader("إنت دلوقتي في العالم الجديد:")
+                st.image(final_image_url, caption="الصورة النهائية", use_container_width=True)
                 
             except Exception as e:
-                st.error(f"تفاصيل المشكلة عشان نحلها: {e}")
+                st.error(f"حصلت مشكلة صغيرة في التوليد. قولي التفاصيل دي عشان نحلها: {e}")
