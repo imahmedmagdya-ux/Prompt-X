@@ -32,7 +32,7 @@ if st.button("🚀 اخلق هذا العالم!"):
     else:
         with st.spinner("جاري استنساخ ملامحك ورسم العالم الجديد... ⏳"):
             try:
-                gemini_model = genai.GenerativeModel('gemini-3-flash-preview')
+                gemini_model = genai.GenerativeModel('gemini-2.0-flash')
                 
                 face_image = Image.open(face_file)
                 face_prompt = "Analyze this person's facial features strictly and accurately in one English sentence. Describe their approximate age, skin tone, glasses (if any), hair, and expression. Start with: 'A person with...'"
