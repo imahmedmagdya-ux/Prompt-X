@@ -47,15 +47,19 @@ if st.button("🚀 انقلني لهذا العالم!"):
                 
                 base_prompt = gemini_response.text.strip()
                 
+                face_file.seek(0)
+                
+                final_prompt = f"A photorealistic, highly detailed portrait of a man img, {base_prompt}, intense cinematic lighting, perfect likeness, high quality"
+                
                 model_inputs = {
-                    "image": face_file,
-                    "prompt": f"A photorealistic, highly detailed portrait of a man, {base_prompt}, matching visible features and glasses frames, intense cinematic lighting, perfect likeness --ar 1:1 --stylize 300", # ندمج الوصف من Gemini مع أوامر المطابقة
-                    "negative_prompt": "generic face, blurred, duplicate faces, pose distortion, cartoon, low quality",
-                    "num_inference_steps": 50,
-                    "guidance_scale": 7,
+                    "input_image": face_file, 
+                    "prompt": final_prompt,
+                    "negative_prompt": "nsfw, generic face, blurred, duplicate faces, pose distortion, cartoon, low quality",
+                    "num_steps": 40, 
+                    "guidance_scale": 5,
                 }
                 
-                model_version = "lucataco/photomaker:011a6873528b7e7d69d2d5084931a2935824982669e46950275a5e7b57a55598"
+                model_version = "tencentarc/photomaker:ddfc2b08d209f9fa8c1eca692712918bd449f695dabb4a958da31802a9570fe4"
                 
                 output_url_list = replicate_client.run(model_version, input=model_inputs)
                 
