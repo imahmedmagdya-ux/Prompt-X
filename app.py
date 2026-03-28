@@ -1,19 +1,17 @@
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
-from gradio_client import Client, handle_file
-import tempfile
-import os
+import urllib.parse
 
-st.set_page_config(page_title="Prompt-X: انقل وجهك!", page_icon="🧑‍🎤", layout="centered")
+st.set_page_config(page_title="Prompt-X: استنساخ العوالم", page_icon="🪄", layout="centered")
 
-st.title("🧑‍🎤 Prompt-X: انقل وجهك لأي عالم!")
-st.write("النسخة المفتوحة المصدر - مجانية 100% للأبد باستخدام مجتمع Hugging Face 🚀")
+st.title("🪄 Prompt-X: استنساخ العوالم!")
+st.write("حول الخيال لحقيقة! 🚀")
 
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 except Exception as e:
-    st.warning("جاري تجهيز الموقع... تأكد من إعدادات المفاتيح السرية.")
+    st.warning("جاري تجهيز الموقع...")
 
 col1, col2 = st.columns(2)
 
@@ -27,59 +25,35 @@ with col2:
     if face_file:
         st.image(face_file, caption="الوجه", use_container_width=True)
 
-if st.button("🚀 انقلني لهذا العالم!"):
+if st.button("🚀 اخلق هذا العالم!"):
     if not scene_file or not face_file:
         st.error("ارجوك، ارفع الصورتين الأول!")
     else:
-        with st.spinner("جاري تحليل المشهد ودمج العوالم (برجاء الانتظار دقيقة أو دقيقتين، نحن نستخدم سيرفرات مجانية)... ⏳"):
+        with st.spinner("جاري استنساخ ملامحك وتحليل المشهد لخلق صورة سينمائية... ⏳ (ثواني معدودة)"):
             try:
-                scene_image = Image.open(scene_file)
                 gemini_model = genai.GenerativeModel('gemini-3-flash-preview')
                 
-                scene_analysis_prompt = """
-                أنت خبير تصوير. حلل هذه الصورة بدقة لإضاءتها وألوانها والبيئة.
-                اكتب Prompt باللغة الإنجليزية يصف هذه البيئة. لا تصف الأشخاص، صف فقط المشهد والملابس.
-                اكتب البرومبت كسطر واحد فقط.
-                """
-                gemini_response = gemini_model.generate_content([scene_analysis_prompt, scene_image])
-                base_prompt = gemini_response.text.strip()
-                
                 face_image = Image.open(face_file)
-                face_image.thumbnail((800, 800))
+                face_prompt = "Analyze this person's facial features strictly and accurately in one English sentence. Describe their approximate age, skin tone, glasses (if any), hair, and expression. Start with: 'A person with...'"
+                face_desc = gemini_model.generate_content([face_prompt, face_image]).text.strip()
                 
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
-                    face_image.save(tmp_file.name)
-                    tmp_path = tmp_file.name
+                scene_image = Image.open(scene_file)
+                scene_prompt = "Analyze this environment, lighting, and mood accurately in one English sentence. Do NOT describe the people, only the scene and the atmosphere."
+                scene_desc = gemini_model.generate_content([scene_prompt, scene_image]).text.strip()
                 
-                final_prompt = f"A photorealistic portrait of a man img, {base_prompt}, cinematic lighting, 8k resolution, highly detailed"
+                final_prompt = f"A breathtaking photorealistic cinematic masterpiece of {face_desc}, wearing dark epic clothing, standing confidently in {scene_desc}. 8k resolution, dramatic lighting, highly detailed, Unreal Engine 5 render, award winning photography."
                 
-                client = Client("TencentARC/PhotoMaker")
+                encoded_prompt = urllib.parse.quote(final_prompt)
+                image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true"
                 
-                client = Client("TencentARC/PhotoMaker")
-                
-                result = client.predict(
-                    handle_file(tmp_path), 
-                    final_prompt,
-                    "nsfw, generic face, badly drawn, distorted, low quality",
-                    "(No style)",
-                    20,
-                    20,
-                    1,
-                    5,
-                    0,
-                    api_name="/generate_image"
-                )
-                
-                st.success("تم التوليد بنجاح من السيرفر المجاني! 🎉")
+                st.success("تم تخليق العالم بنجاح! 🎉")
                 st.balloons()
-                st.subheader("إنت دلوقتي في العالم الجديد:")
                 
-                if isinstance(result, tuple) or isinstance(result, list):
-                    st.image(result[0], use_container_width=True)
-                else:
-                    st.image(result, use_container_width=True)
-                    
-                os.remove(tmp_path)
+                st.subheader("إنت في العالم الجديد:")
+                st.image(image_url, caption="الصورة المستنسخة", use_container_width=True)
+                
+                with st.expander("شوف الذكاء الاصطناعي شاف صورتك إزاي (البرومبت السري):"):
+                    st.code(final_prompt, language="text")
                     
             except Exception as e:
-                st.error(f"حصل خطأ أو السيرفر المجاني عليه ضغط حالياً. التفاصيل: {e}")
+                st.error(f"حصلت مشكلة صغيرة: {e}")
