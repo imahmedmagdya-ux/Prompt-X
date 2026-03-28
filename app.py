@@ -3,6 +3,7 @@ import google.generativeai as genai
 from PIL import Image
 import urllib.parse
 import requests
+import random # ضفنا دي عشان توليد أرقام عشوائية للصور
 
 # 1. تظبيط شكل الصفحة
 st.set_page_config(page_title="Prompt-X: استنساخ العوالم", page_icon="🚀", layout="centered")
@@ -59,11 +60,20 @@ if st.button("🚀 اخلق هذا العالم!"):
                 # --- الخطوة ب: بناء البرومبت النهائي ---
                 final_prompt = f"A breathtaking photorealistic cinematic masterpiece of {face_desc}, wearing dark epic clothing, standing confidently in {scene_desc}. 8k resolution, dramatic lighting, highly detailed, Unreal Engine 5 render, award winning photography"
                 
-                # --- الخطوة ج: تحميل الصورة من السيرفر المجاني ---
+                # --- الخطوة ج: التنكر وتحميل الصورة ---
                 encoded_prompt = urllib.parse.quote(final_prompt)
-                image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true"
                 
-                response = requests.get(image_url)
+                # ضفنا رقم عشوائي (Seed) عشان السيرفر يرسم صورة جديدة طازة كل مرة
+                random_seed = random.randint(1, 1000000)
+                image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={random_seed}"
+                
+                # الباسبور المزور (User-Agent) عشان السيرفر يفتكرنا متصفح كروم حقيقي
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                }
+                
+                # زودنا وقت الانتظار لـ 60 ثانية عشان السيرفر ياخد راحته في الرسم
+                response = requests.get(image_url, headers=headers, timeout=60)
                 
                 # --- الخطوة د: عرض النتيجة ---
                 if response.status_code == 200:
@@ -76,7 +86,7 @@ if st.button("🚀 اخلق هذا العالم!"):
                     with st.expander("البرومبت السري المستخدم:"):
                         st.code(final_prompt, language="text")
                 else:
-                    st.error("السيرفر مشغول حالياً، جرب كمان دقيقة.")
+                    st.error(f"الحارس بتاع السيرفر لسه قافش شوية (كود الخطأ: {response.status_code}). جرب تاني كمان لحظات.")
                     
             except Exception as e:
                 st.error(f"حصلت مشكلة: {e}")
