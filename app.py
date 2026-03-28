@@ -44,7 +44,7 @@ if st.button("🚀 اخلق هذا العالم!"):
                 scene_image.thumbnail((512, 512)) # تصغير الصورة
                 
                 # --- الخطوة أ: تحليل المشهد والوجه باستخدام Gemini النسخة المستقرة ---
-                gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+                gemini_model = genai.GenerativeModel('gemini-2.5-flash')
                 
                 face_prompt = "Analyze this person's facial features strictly and accurately in one English sentence. Describe their approximate age, skin tone, glasses (if any), hair, and expression. Start with: 'A person with...'"
                 face_desc = gemini_model.generate_content([face_prompt, face_image]).text.strip()
