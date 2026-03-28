@@ -6,105 +6,79 @@ import tempfile
 import os
 import random
 
-# 1. تظبيط شكل الصفحة
-st.set_page_config(page_title="Prompt-X: استنساخ العوالم", page_icon="🪄", layout="centered")
+# 1. إعدادات الصفحة
+st.set_page_config(page_title="Prompt-X: المستكشف", page_icon="🪄", layout="centered")
 
-st.title("🪄 Prompt-X: استنساخ العوالم!")
-st.write("النسخة المتكاملة: دمج دقيق لملامحك ووضعيتك داخل الموقع بدون الخروج منه 🚀")
+st.title("🪄 Prompt-X: استنساخ العوالم")
+st.write("نسخة الإصلاح النهائي: حل مشكلة السواد وتثبيت المطابقة 🚀")
 
-# 2. ربط مفتاح جوجل
+# 2. ربط جوجل
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 except Exception as e:
-    st.warning("جاري تجهيز الموقع... تأكد من مفتاح جوجل.")
+    st.error("تأكد من وجود GOOGLE_API_KEY في الـ Secrets")
 
-# 3. مكان رفع الصور
+# 3. رفع الصور
 col1, col2 = st.columns(2)
-
 with col1:
-    scene_file = st.file_uploader("🖼️ ارفع المشهد المستهدف", type=["jpg", "jpeg", "png"])
-    if scene_file:
-        st.image(scene_file, caption="المشهد", use_container_width=True)
-
+    scene_file = st.file_uploader("🖼️ صورة المشهد", type=["jpg", "png", "jpeg"])
 with col2:
-    face_file = st.file_uploader("🧑 ارفع صورتك الشخصية", type=["jpg", "jpeg", "png"])
-    if face_file:
-        st.image(face_file, caption="الوجه", use_container_width=True)
+    face_file = st.file_uploader("🧑 صورتك الشخصية", type=["jpg", "png", "jpeg"])
 
-# 4. زرار التشغيل
-if st.button("🚀 اخلق هذا العالم الآن!"):
-    if not scene_file or not face_file:
-        st.error("ارجوك، ارفع الصورتين الأول!")
-    else:
-        with st.spinner("جاري دمج ملامحك مع البيئة (برجاء الانتظار، قد تستغرق دقيقة أو دقيقتين لضمان دقة 100%)... ⏳"):
+if st.button("🚀 ابدأ التحويل"):
+    if scene_file and face_file:
+        with st.spinner("جاري المعالجة الذكية... (قد تستغرق دقيقة) ⏳"):
             try:
-                # --- الخطوة أ: حفظ الصور مؤقتاً لإرسالها للسيرفر ---
-                face_image = Image.open(face_file)
-                scene_image = Image.open(scene_file)
+                # أ- تجهيز الصور
+                face_img = Image.open(face_file).convert("RGB")
+                scene_img = Image.open(scene_file).convert("RGB")
                 
-                # تصغير بسيط لتسريع الرفع
-                face_image.thumbnail((800, 800))
-                scene_image.thumbnail((800, 800))
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as f_tmp:
+                    face_img.save(f_tmp.name, quality=95)
+                    f_path = f_tmp.name
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as s_tmp:
+                    scene_img.save(s_tmp.name, quality=95)
+                    s_path = s_tmp.name
+
+                # ب- تحليل Gemini (برومبت مبسط جداً لعدم استفزاز الفلاتر)
+                model = genai.GenerativeModel('gemini-2.0-flash')
+                analysis = model.generate_content(["Describe the lighting and colors of this place in 5 words:", scene_img])
+                style_desc = analysis.text.strip()
+
+                # ج- الاتصال بالسيرفر (استخدام نسخة مغايرة)
+                client = Client("Zhen-An/InstantID") # سيرفر بديل
                 
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_face:
-                    face_image.save(tmp_face.name)
-                    face_path = tmp_face.name
-                    
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_scene:
-                    scene_image.save(tmp_scene.name)
-                    scene_path = tmp_scene.name
-
-                # --- الخطوة ب: تحليل المشهد لاستخراج برومبت البيئة (جوجل) ---
-                gemini_model = genai.GenerativeModel('gemini-2.5-flash')
-                scene_prompt_text = "Analyze this environment accurately in one short English sentence. Focus on the lighting, background, and atmosphere. Do not describe the person."
-                scene_desc = gemini_model.generate_content([scene_prompt_text, scene_image]).text.strip()
-                
-                final_prompt = f"A photorealistic masterpiece of a man, {scene_desc}, 8k resolution, highly detailed, award winning photography"
-
-                # استخدمنا سيرفر بديل أكثر استقراراً لو الأول مشغول
-                try:
-                    client = Client("instantX/InstantID")
-                except:
-                    client = Client("Zhen-An/InstantID") # سيرفر احتياطي
-
-                # إرسال البيانات بالترتيب المباشر
+                # إرسال البيانات (Positional Arguments)
                 result = client.predict(
-                    handle_file(face_path),
-                    handle_file(scene_path),
-                    final_prompt,
-                    "low quality, blurry, distorted, black image, nsfw, dark frame", # برومبت سلبي لمنع السواد
-                    "(No style)",
-                    25,        # عدد الخطوات
-                    0.6,       # تقليل القوة شوية عشان ميهنجش السيرفر (Identity)
-                    0.6,       # تقليل القوة شوية (Adapter)
-                    5,         # قوة التوجيه
-                    random.randint(1, 1000000),
+                    handle_file(f_path), # Face
+                    handle_file(s_path), # Pose/Scene
+                    f"A high-quality cinematic portrait of a man, {style_desc}, photorealistic, masterwork", # Prompt
+                    "black image, dark, blurry, nsfw, distorted, ugly, bad anatomy", # Negative Prompt (إضافة منع السواد)
+                    "(No style)", # Style
+                    20,    # Steps (تقليل الخطوات يقلل احتمالية السواد)
+                    0.4,   # Identity Strength (تقليل القوة لتفادي الـ Crash)
+                    0.4,   # Image Adapter Strength
+                    5.0,   # Guidance
+                    random.randint(1, 999999), # Seed
                     api_name="/generate_image"
                 )
 
-                # --- الخطوة د: تظهير الصورة وحل مشكلة السواد ---
-                st.success("تم تخليق العالم بنجاح! 🎉")
+                # د- التظهير النهائي
+                st.success("تم التوليد!")
+                res_path = result[0] if isinstance(result, (list, tuple)) else result
+                final_output = Image.open(res_path).convert("RGB")
                 
-                # استخراج المسار الصحيح
-                if isinstance(result, (list, tuple)):
-                    final_img_path = result[0]
-                else:
-                    final_img_path = result
+                st.image(final_output, caption="النتيجة النهائية", use_container_width=True)
+                
+                # زر التحميل
+                with open(res_path, "rb") as img_file:
+                    st.download_button("📥 تحميل الصورة", img_file, "result.jpg", "image/jpeg")
 
-                # الحل السحري: فتح الصورة وتحويلها لـ RGB فوراً
-                raw_image = Image.open(final_img_path)
-                final_image = raw_image.convert("RGB") # هذا السطر يحل مشكلة الصور السوداء
-                
-                st.subheader("إنت دلوقتي في العالم الجديد:")
-                st.image(final_image, caption="المطابقة الاحترافية 100%", use_container_width=True)
-                
-                # زرار لتحميل الصورة
-                with open(final_img_path, "rb") as file:
-                    st.download_button(label="📥 تحميل الصورة بجودة عالية", data=file, file_name="my_world.jpg", mime="image/jpg")
-
-                # تنظيف الملفات
-                if os.path.exists(face_path): os.remove(face_path)
-                if os.path.exists(scene_path): os.remove(scene_path)
+                # تنظيف
+                os.remove(f_path)
+                os.remove(s_path)
 
             except Exception as e:
-                st.error(f"السيرفر المجاني مضغوط جداً حالياً، برجاء المحاولة مرة أخرى بعد دقيقة. التفاصيل: {e}")
+                st.error(f"عذراً، السيرفر يواجه ضغطاً كبيراً. حاول مرة أخرى. (Error: {e})")
+    else:
+        st.warning("يرجى رفع الصورتين أولاً.")
