@@ -61,47 +61,50 @@ if st.button("🚀 اخلق هذا العالم الآن!"):
                 
                 final_prompt = f"A photorealistic masterpiece of a man, {scene_desc}, 8k resolution, highly detailed, award winning photography"
 
-                # --- الخطوة ج: الاتصال السري بسيرفر InstantID للمطابقة (بدون خروج العميل) ---
-                # السيرفر ده بياخد الوش (للهوية) والمشهد (للوضعية والبيئة)
-                client = Client("instantX/InstantID")
-                
-                # --- الخطوة ج: الاتصال السري بسيرفر InstantID للمطابقة ---
-                client = Client("instantX/InstantID")
-                
-                # إرسال البيانات بالترتيب المباشر لتفادي أي تغيير في أسماء المتغيرات على السيرفر
+                # استخدمنا سيرفر بديل أكثر استقراراً لو الأول مشغول
+                try:
+                    client = Client("instantX/InstantID")
+                except:
+                    client = Client("Zhen-An/InstantID") # سيرفر احتياطي
+
+                # إرسال البيانات بالترتيب المباشر
                 result = client.predict(
-                    handle_file(face_path),                                              # 1. صورة الوجه
-                    handle_file(scene_path),                                             # 2. صورة الوضعية (المشهد)
-                    final_prompt,                                                        # 3. البرومبت
-                    "nsfw, generic face, badly drawn, distorted, low quality, cartoon",  # 4. البرومبت السلبي
-                    "(No style)",                                                        # 5. الستايل
-                    20,                                                                  # 6. عدد الخطوات
-                    0.8,                                                                 # 7. قوة مطابقة الوجه
-                    0.8,                                                                 # 8. قوة مطابقة البيئة
-                    5,                                                                   # 9. قوة التوجيه
-                    random.randint(1, 100000),                                           # 10. Seed
+                    handle_file(face_path),
+                    handle_file(scene_path),
+                    final_prompt,
+                    "low quality, blurry, distorted, black image, nsfw, dark frame", # برومبت سلبي لمنع السواد
+                    "(No style)",
+                    25,        # عدد الخطوات
+                    0.6,       # تقليل القوة شوية عشان ميهنجش السيرفر (Identity)
+                    0.6,       # تقليل القوة شوية (Adapter)
+                    5,         # قوة التوجيه
+                    random.randint(1, 1000000),
                     api_name="/generate_image"
                 )
 
-                # --- الخطوة د: تظهير الصورة (حل مشكلة الصورة السوداء) ---
-                st.success("تم تخليق العالم والمطابقة بنجاح! 🎉")
-                st.balloons()
+                # --- الخطوة د: تظهير الصورة وحل مشكلة السواد ---
+                st.success("تم تخليق العالم بنجاح! 🎉")
+                
+                # استخراج المسار الصحيح
+                if isinstance(result, (list, tuple)):
+                    final_img_path = result[0]
+                else:
+                    final_img_path = result
+
+                # الحل السحري: فتح الصورة وتحويلها لـ RGB فوراً
+                raw_image = Image.open(final_img_path)
+                final_image = raw_image.convert("RGB") # هذا السطر يحل مشكلة الصور السوداء
                 
                 st.subheader("إنت دلوقتي في العالم الجديد:")
+                st.image(final_image, caption="المطابقة الاحترافية 100%", use_container_width=True)
                 
-                # تحويل النتيجة لصورة صالحة للعرض
-                final_img_path = result[0] if isinstance(result, (tuple, list)) else result
-                image_bytes = Image.open(final_img_path)
-                
-                st.image(image_bytes, caption="المطابقة الاحترافية 100% - استنساخ الوجه", use_container_width=True)
-                
-                # مسح الملفات المؤقتة للحفاظ على مساحة الموقع
+                # زرار لتحميل الصورة
+                with open(final_img_path, "rb") as file:
+                    st.download_button(label="📥 تحميل الصورة بجودة عالية", data=file, file_name="my_world.jpg", mime="image/jpg")
+
+                # تنظيف الملفات
                 if os.path.exists(face_path): os.remove(face_path)
                 if os.path.exists(scene_path): os.remove(scene_path)
 
             except Exception as e:
-                # هذا هو الجزء الذي كان يفتقده الكود (قفل بلوك الـ try)
-                st.error(f"حصلت مشكلة تقنية: {e}")
-                # تنظيف الملفات حتى في حالة الخطأ
-                if 'face_path' in locals() and os.path.exists(face_path): os.remove(face_path)
-                if 'scene_path' in locals() and os.path.exists(scene_path): os.remove(scene_path)
+                st.error(f"السيرفر المجاني مضغوط جداً حالياً، برجاء المحاولة مرة أخرى بعد دقيقة. التفاصيل: {e}")
