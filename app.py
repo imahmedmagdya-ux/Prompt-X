@@ -1,18 +1,17 @@
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
-import requests
-import base64
-import io
+from gradio_client import Client, handle_file
+import tempfile
+import os
 
 st.set_page_config(page_title="Prompt-X: انقل وجهك!", page_icon="🧑‍🎤", layout="centered")
 
 st.title("🧑‍🎤 Prompt-X: انقل وجهك لأي عالم!")
-st.write("ارفع صورتين: المشهد اللي بتحلم بيه، وصورتك الشخصية، وسيب الذكاء الاصطناعي يعمل السحر (100 محاولة مجانية يومياً)!")
+st.write("النسخة المفتوحة المصدر - مجانية 100% للأبد باستخدام مجتمع Hugging Face 🚀")
 
 try:
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-    segmind_api_key = st.secrets["SEGMIND_API_KEY"]
 except Exception as e:
     st.warning("جاري تجهيز الموقع... تأكد من إعدادات المفاتيح السرية.")
 
@@ -32,10 +31,10 @@ if st.button("🚀 انقلني لهذا العالم!"):
     if not scene_file or not face_file:
         st.error("ارجوك، ارفع الصورتين الأول!")
     else:
-        with st.spinner("جاري تحليل المشهد ودمج العوالم... ⏳"):
+        with st.spinner("جاري تحليل المشهد ودمج العوالم (برجاء الانتظار دقيقة أو دقيقتين، نحن نستخدم سيرفرات مجانية)... ⏳"):
             try:
                 scene_image = Image.open(scene_file)
-                gemini_model = genai.GenerativeModel('gemini-2.5-flash')
+                gemini_model = genai.GenerativeModel('gemini-3-flash-preview')
                 
                 scene_analysis_prompt = """
                 أنت خبير تصوير. حلل هذه الصورة بدقة لإضاءتها وألوانها والبيئة.
@@ -46,32 +45,39 @@ if st.button("🚀 انقلني لهذا العالم!"):
                 base_prompt = gemini_response.text.strip()
                 
                 face_image = Image.open(face_file)
-                buffered = io.BytesIO()
-                face_image.thumbnail((800, 800)) 
-                face_image.save(buffered, format="JPEG")
-                img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+                face_image.thumbnail((800, 800))
+                
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+                    face_image.save(tmp_file.name)
+                    tmp_path = tmp_file.name
                 
                 final_prompt = f"A photorealistic portrait of a man img, {base_prompt}, cinematic lighting, 8k resolution, highly detailed"
                 
-                url = "https://api.segmind.com/v1/photomaker"
-                data = {
-                    "prompt": final_prompt,
-                    "negative_prompt": "nsfw, generic face, badly drawn, distorted, low quality",
-                    "input_image": img_str,
-                    "num_inference_steps": 25,
-                    "guidance_scale": 7,
-                    "style_name": "(No style)"
-                }
+                client = Client("TencentARC/PhotoMaker")
                 
-                response = requests.post(url, json=data, headers={'x-api-key': segmind_api_key})
+                result = client.predict(
+                    image_path=handle_file(tmp_path),
+                    prompt=final_prompt,
+                    negative_prompt="nsfw, generic face, badly drawn, distorted, low quality",
+                    style_name="(No style)",
+                    num_steps=20,
+                    style_strength_ratio=20,
+                    num_outputs=1,
+                    guidance_scale=5,
+                    seed=0,
+                    api_name="/generate_image"
+                )
                 
-                if response.status_code == 200:
-                    st.success("تم التوليد بنجاح! 🎉 رصيدك المجاني شغال بكفاءة.")
-                    st.balloons()
-                    st.subheader("إنت دلوقتي في العالم الجديد:")
-                    st.image(response.content, caption="الصورة النهائية", use_container_width=True)
+                st.success("تم التوليد بنجاح من السيرفر المجاني! 🎉")
+                st.balloons()
+                st.subheader("إنت دلوقتي في العالم الجديد:")
+                
+                if isinstance(result, tuple) or isinstance(result, list):
+                    st.image(result[0], use_container_width=True)
                 else:
-                    st.error(f"حصل خطأ في التوليد: {response.text}")
+                    st.image(result, use_container_width=True)
+                    
+                os.remove(tmp_path)
                     
             except Exception as e:
-                st.error(f"تفاصيل المشكلة: {e}")
+                st.error(f"حصل خطأ أو السيرفر المجاني عليه ضغط حالياً. التفاصيل: {e}")
