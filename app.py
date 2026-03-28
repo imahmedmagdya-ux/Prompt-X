@@ -32,4 +32,4 @@ if uploaded_file is not None:
                 st.code(response.text, language="text")
                 
             except Exception as e:
-                st.error("حصلت مشكلة صغيرة، جرب صورة تانية أو تأكد من إعدادات الموقع.")
+                st.error(f"تفاصيل المشكلة عشان نحلها: {e}")
