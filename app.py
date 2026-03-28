@@ -21,7 +21,7 @@ if uploaded_file is not None:
     if st.button("🚀 توليد الكود السري"):
         with st.spinner("جاري المسح بالليزر وتحليل تفاصيل الصورة... ⏳"):
             try:
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                model = genai.GenerativeModel('gemini-1.5-flash-latest')
                 
                 prompt_instructions = "أنت خبير في تصميم الصور بالذكاء الاصطناعي. حلل هذه الصورة بدقة شديدة، واكتب Prompt باللغة الإنجليزية يمكن استخدامه في أدوات مثل Midjourney لإعادة إنتاج صورة مشابهة تماماً. ركز على الإضاءة، الألوان، زاوية الكاميرا، والأسلوب الفني. اكتب الكود مباشرة بدون مقدمات."
                 
